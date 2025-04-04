@@ -1,20 +1,12 @@
 import torch
 import torch.nn as nn
-import torchvision.models as models
 
 class CanopyHeightNet(nn.Module):
     def __init__(self):
-        super(CanopyHeightNet, self).__init__()
-        backbone = models.resnet50(weights=None)
-        layers = list(backbone.children())[:-2]
-        self.backbone = nn.Sequential(*layers)
-        self.regressor = nn.Sequential(
-            nn.Conv2d(2048, 512, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(512, 1, kernel_size=1)
-        )
+        super().__init__()
+        self.fc = nn.Linear(3, 1)  # R, G, B → altura
 
     def forward(self, x):
-        x = self.backbone(x)
-        x = self.regressor(x)
-        return x.squeeze(1)
+        avg = x.mean(dim=[2, 3])            # B x 3 (promedio de R, G, B)
+        height = self.fc(avg)               # B x 1 (valor de altura)
+        return height.unsqueeze(-1).unsqueeze(-1).expand(-1, -1, 512, 512)  # B x 1 x 512 x 512
