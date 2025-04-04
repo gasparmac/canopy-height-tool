@@ -19,6 +19,7 @@ def load_model():
     return model
 
 # Procesar imagen y predecir altura
+
 def predict_canopy_height(model, pil_image):
     transform = T.Compose([
         T.Resize((512, 512)),
@@ -26,7 +27,7 @@ def predict_canopy_height(model, pil_image):
     ])
     input_tensor = transform(pil_image).unsqueeze(0)
     with torch.no_grad():
-        output = model(input_tensor)[0].numpy()
+        output = model(input_tensor)[0].squeeze().numpy()  # <- Asegura que sea 2D
     return output  # Mapa 2D de altura en metros
 
 st.set_page_config(page_title="Canopy Height Map Tool", layout="wide")
