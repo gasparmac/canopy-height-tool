@@ -1,4 +1,4 @@
-# Requiere: streamlit, pillow, torch, torchvision, numpy, opencv-python
+# Requiere: streamlit, pillow, torch, torchvision, numpy, opencv-python-headless
 import streamlit as st
 import tempfile
 import os
@@ -44,9 +44,17 @@ if uploaded_file is not None:
         st.image(pil_img, caption="Imagen subida", use_container_width=True)
         st.markdown("**Generando mapa estimado de altura del dosel...**")
         height_map = predict_canopy_height(model, pil_img)
-        norm_map = cv2.normalize(height_map, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-        color_map = cv2.applyColorMap(norm_map, cv2.COLORMAP_JET)
-        st.image(color_map, caption="Mapa generado (altura del dosel simulada)", use_container_width=True)
+
+        if height_map is not None and height_map.size > 0:
+            norm_map = cv2.normalize(height_map, None, 0, 255, cv2.NORM_MINMAX)
+            norm_map = np.nan_to_num(norm_map).astype(np.uint8)
+            if norm_map.ndim == 2:
+                color_map = cv2.applyColorMap(norm_map, cv2.COLORMAP_JET)
+                st.image(color_map, caption="Mapa generado (altura del dosel simulada)", use_container_width=True)
+            else:
+                st.error("Error: el mapa de altura no tiene el formato esperado (2D).")
+        else:
+            st.error("Error: no se pudo generar el mapa de altura.")
 
     if suffix in [".jpg", ".jpeg", ".png"]:
         img = Image.open(uploaded_file).convert("RGB")
@@ -79,4 +87,12 @@ if uploaded_file is not None:
                     st.write("- " + n)
 
             if image_files:
-                overlay_path
+                overlay_path = os.path.join(temp_dir, image_files[0])
+                overlay_img = Image.open(overlay_path).convert("RGB")
+                process_and_predict(overlay_img)
+
+        else:
+            st.error("No se encontró archivo KML en el KMZ subido.")
+
+    st.markdown("---")
+    st.markdown("Esta herramienta utiliza un modelo simple para simular la altura del dosel. Pronto se integrará el modelo real de Meta (HighResCanopyHeight).")
