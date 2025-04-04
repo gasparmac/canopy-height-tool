@@ -10,7 +10,7 @@ import torchvision.transforms as T
 import numpy as np
 import cv2
 
-# Función para cargar el modelo de altura del dosel
+# Función para cargar modelo dummy directamente sin archivo externo
 @st.cache_resource
 def load_model():
     from canopy_model import CanopyHeightNet
@@ -26,12 +26,11 @@ def predict_canopy_height(model, pil_image):
     ])
     input_tensor = transform(pil_image).unsqueeze(0)
     with torch.no_grad():
-        output = model(input_tensor)
-        height_map = output.squeeze().item() * np.ones((512, 512))  # valor simulado plano
-    return height_map
+        output = model(input_tensor)[0].numpy()
+    return output  # Mapa 2D de altura en metros
 
 st.set_page_config(page_title="Canopy Height Map Tool", layout="wide")
-st.title("🌲 Canopy Height Map Generator (modelo real conectado)")
+st.title("🌲 Canopy Height Map Generator (modelo dummy funcional)")
 
 uploaded_file = st.file_uploader("Subí una imagen satelital o archivo KMZ", type=["jpg", "jpeg", "png", "kmz"])
 
@@ -43,12 +42,11 @@ if uploaded_file is not None:
 
     def process_and_predict(pil_img):
         st.image(pil_img, caption="Imagen subida", use_container_width=True)
-        st.markdown("**Generando mapa real de altura del dosel...**")
+        st.markdown("**Generando mapa estimado de altura del dosel...**")
         height_map = predict_canopy_height(model, pil_img)
-        # Normalizar y convertir en imagen
         norm_map = cv2.normalize(height_map, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
         color_map = cv2.applyColorMap(norm_map, cv2.COLORMAP_JET)
-        st.image(color_map, caption="Mapa generado (altura del dosel en metros)", use_container_width=True)
+        st.image(color_map, caption="Mapa generado (altura del dosel simulada)", use_container_width=True)
 
     if suffix in [".jpg", ".jpeg", ".png"]:
         img = Image.open(uploaded_file).convert("RGB")
@@ -81,12 +79,4 @@ if uploaded_file is not None:
                     st.write("- " + n)
 
             if image_files:
-                overlay_path = os.path.join(temp_dir, image_files[0])
-                overlay_img = Image.open(overlay_path).convert("RGB")
-                process_and_predict(overlay_img)
-
-        else:
-            st.error("No se encontró archivo KML en el KMZ subido.")
-
-    st.markdown("---")
-    st.markdown("Esta herramienta utiliza el modelo de Meta para estimar altura de dosel con IA: [HighResCanopyHeight](https://github.com/facebookresearch/HighResCanopyHeight)")
+                overlay_path
