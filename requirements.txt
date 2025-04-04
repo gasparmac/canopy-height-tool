@@ -1,3 +1,6 @@
 streamlit
+torch
+torchvision
 pillow
-simplekml
+numpy
+opencv-python
