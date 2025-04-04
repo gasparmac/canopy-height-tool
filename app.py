@@ -12,11 +12,9 @@ import cv2
 
 # Función para cargar el modelo de altura del dosel
 @st.cache_resource
-def load_model(weights_path="canopy_height_model.pth"):
+def load_model():
     from canopy_model import CanopyHeightNet
     model = CanopyHeightNet()
-    state_dict = torch.load(weights_path, map_location=torch.device("cpu"))
-    model.load_state_dict(state_dict)
     model.eval()
     return model
 
