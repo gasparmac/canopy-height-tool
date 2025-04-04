@@ -1,10 +1,10 @@
-# Requiere: streamlit, rasterio, folium, simplekml, pillow, torch, torchvision, etc.
+# Requiere: streamlit, pillow, simplekml, xml
 import streamlit as st
 import tempfile
 import os
 from PIL import Image
 import zipfile
-import simplekml
+import xml.etree.ElementTree as ET
 
 st.set_page_config(page_title="Canopy Height Map Tool", layout="wide")
 st.title("🌲 Canopy Height Map Generator")
@@ -33,14 +33,34 @@ if uploaded_file is not None:
             kmz.extractall(temp_dir)
 
         kml_file = [f for f in os.listdir(temp_dir) if f.endswith('.kml')]
+        image_files = [f for f in os.listdir(temp_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+
         if kml_file:
             kml_path = os.path.join(temp_dir, kml_file[0])
-            kml = simplekml.Kml()
-            kml.open(kml_path)
+            tree = ET.parse(kml_path)
+            root = tree.getroot()
             st.success("Archivo KMZ procesado exitosamente. Extraído: " + kml_file[0])
-            st.markdown("**⚠️ Aún no procesamos mapas desde KMZ en esta demo. Solo mostramos info básica.**")
+
+            # Mostrar nombres de elementos (si existen)
+            names = [elem.text for elem in root.iter() if 'name' in elem.tag and elem.text]
+            if names:
+                st.markdown("### Elementos encontrados en el KML:")
+                for n in names:
+                    st.write("- " + n)
+
+            # Mostrar imagen del overlay
+            if image_files:
+                overlay_path = os.path.join(temp_dir, image_files[0])
+                overlay_img = Image.open(overlay_path)
+                st.image(overlay_img, caption="Imagen del Overlay (extraída del KMZ)", use_column_width=True)
+
+                st.markdown("**Simulando predicción de altura del dosel...**")
+                canopy_overlay = overlay_img.convert("L")
+                st.image(canopy_overlay, caption="Mapa simulado de altura del dosel (overlay)", use_column_width=True)
+
         else:
             st.error("No se encontró archivo KML en el KMZ subido.")
 
     st.markdown("---")
     st.markdown("Esta es una herramienta demo. Para implementar el modelo real de altura del dosel de Meta, integrá su red neuronal disponible en GitHub: [facebookresearch/HighResCanopyHeight](https://github.com/facebookresearch/HighResCanopyHeight)")
+    
