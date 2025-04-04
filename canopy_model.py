@@ -1,23 +1,20 @@
 import torch
 import torch.nn as nn
+import torchvision.models as models
 
 class CanopyHeightNet(nn.Module):
     def __init__(self):
-        super().__init__()
+        super(CanopyHeightNet, self).__init__()
+        backbone = models.resnet50(weights=None)
+        layers = list(backbone.children())[:-2]
+        self.backbone = nn.Sequential(*layers)
+        self.regressor = nn.Sequential(
+            nn.Conv2d(2048, 512, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(512, 1, kernel_size=1)
+        )
 
     def forward(self, x):
-        # x: B x 3 x 512 x 512
-        r = x[:, 0, :, :]  # canal rojo
-        g = x[:, 1, :, :]  # canal verde
-        b = x[:, 2, :, :]  # canal azul
-
-        # Simulamos un mapa de altura en función del color
-        height = 0.3 * r + 0.6 * g + 0.1 * b
-
-        # Sumamos ruido leve para que no sea completamente plano
-        noise = torch.randn_like(height) * 0.05
-        height = height + noise
-
-        # Clampeamos a [0, 1] para mantener escala normalizada
-        height = torch.clamp(height, 0.0, 1.0)
-        return height  # B x 512 x 512
+        x = self.backbone(x)
+        x = self.regressor(x)
+        return x.squeeze(1)  # B x H x W
