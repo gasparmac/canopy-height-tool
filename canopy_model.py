@@ -17,4 +17,4 @@ class CanopyHeightNet(nn.Module):
     def forward(self, x):
         x = self.backbone(x)
         x = self.regressor(x)
-        return x.squeeze(1)  # B x H x W
+        return x.squeeze(1)
