@@ -1,0 +1,9 @@
+def predict_canopy_height(model, pil_image):
+    transform = T.Compose([
+        T.Resize((512, 512)),
+        T.ToTensor(),
+    ])
+    input_tensor = transform(pil_image).unsqueeze(0)
+    with torch.no_grad():
+        output = model(input_tensor)[0].numpy()
+    return output  # mapa 2D de altura en metros
