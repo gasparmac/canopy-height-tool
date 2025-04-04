@@ -10,23 +10,29 @@ import torchvision.transforms as T
 import numpy as np
 import cv2
 
-# Función para cargar modelo dummy directamente sin archivo externo
 @st.cache_resource
+
 def load_model(weights_path="canopy_height_model.pth"):
     from canopy_model import CanopyHeightNet
-    import urllib.request, os
-
-    if not os.path.exists(weights_path):
-        url = "https://nativas-climatech.nyc3.digitaloceanspaces.com/canopy_height_model.pth"
-        urllib.request.urlretrieve(url, weights_path)
+    import urllib.request
 
     model = CanopyHeightNet()
+
+    if not os.path.exists(weights_path):
+        st.warning("Pesos no encontrados localmente. Intentando descargar...")
+        try:
+            url = "https://huggingface.co/gasparmac/meta-canopy-model/resolve/main/canopy_height_model.pth"
+            urllib.request.urlretrieve(url, weights_path)
+            st.success("Pesos descargados exitosamente desde HuggingFace.")
+        except Exception as e:
+            st.error("No se pudo descargar el modelo. Subilo manualmente al repositorio como 'canopy_height_model.pth'")
+            raise e
+
     state_dict = torch.load(weights_path, map_location=torch.device("cpu"))
     model.load_state_dict(state_dict)
     model.eval()
     return model
 
-# Procesar imagen y predecir altura
 
 def predict_canopy_height(model, pil_image):
     transform = T.Compose([
@@ -35,11 +41,11 @@ def predict_canopy_height(model, pil_image):
     ])
     input_tensor = transform(pil_image).unsqueeze(0)
     with torch.no_grad():
-        output = model(input_tensor)[0].squeeze().numpy()  # <- Asegura que sea 2D
-    return output  # Mapa 2D de altura en metros
+        output = model(input_tensor)[0].numpy()
+    return output
 
 st.set_page_config(page_title="Canopy Height Map Tool", layout="wide")
-st.title("🌲 Canopy Height Map Generator (modelo dummy funcional)")
+st.title("🌲 Canopy Height Map Generator (modelo real Meta)")
 
 uploaded_file = st.file_uploader("Subí una imagen satelital o archivo KMZ", type=["jpg", "jpeg", "png", "kmz"])
 
@@ -51,7 +57,7 @@ if uploaded_file is not None:
 
     def process_and_predict(pil_img):
         st.image(pil_img, caption="Imagen subida", use_container_width=True)
-        st.markdown("**Generando mapa estimado de altura del dosel...**")
+        st.markdown("**Generando mapa real de altura del dosel...**")
         height_map = predict_canopy_height(model, pil_img)
 
         if height_map is not None and height_map.size > 0:
@@ -59,7 +65,7 @@ if uploaded_file is not None:
             norm_map = np.nan_to_num(norm_map).astype(np.uint8)
             if norm_map.ndim == 2:
                 color_map = cv2.applyColorMap(norm_map, cv2.COLORMAP_JET)
-                st.image(color_map, caption="Mapa generado (altura del dosel simulada)", use_container_width=True)
+                st.image(color_map, caption="Mapa generado (altura del dosel en metros)", use_container_width=True)
             else:
                 st.error("Error: el mapa de altura no tiene el formato esperado (2D).")
         else:
@@ -104,4 +110,4 @@ if uploaded_file is not None:
             st.error("No se encontró archivo KML en el KMZ subido.")
 
     st.markdown("---")
-    st.markdown("Esta herramienta utiliza un modelo simple para simular la altura del dosel. Pronto se integrará el modelo real de Meta (HighResCanopyHeight).")
+    st.markdown("Esta herramienta utiliza el modelo real de Meta (HighResCanopyHeight) para estimar la altura del dosel forestal.")
