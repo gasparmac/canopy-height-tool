@@ -12,5 +12,12 @@ class CanopyHeightNet(nn.Module):
         b = x[:, 2, :, :]  # canal azul
 
         # Simulamos un mapa de altura en función del color
-        height = 0.3 * r + 0.6 * g + 0.1 * b  # combinación ponderada
+        height = 0.3 * r + 0.6 * g + 0.1 * b
+
+        # Sumamos ruido leve para que no sea completamente plano
+        noise = torch.randn_like(height) * 0.05
+        height = height + noise
+
+        # Clampeamos a [0, 1] para mantener escala normalizada
+        height = torch.clamp(height, 0.0, 1.0)
         return height  # B x 512 x 512
