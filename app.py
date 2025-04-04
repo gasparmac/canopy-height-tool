@@ -12,9 +12,17 @@ import cv2
 
 # Función para cargar modelo dummy directamente sin archivo externo
 @st.cache_resource
-def load_model():
+def load_model(weights_path="canopy_height_model.pth"):
     from canopy_model import CanopyHeightNet
+    import urllib.request, os
+
+    if not os.path.exists(weights_path):
+        url = "https://nativas-climatech.nyc3.digitaloceanspaces.com/canopy_height_model.pth"
+        urllib.request.urlretrieve(url, weights_path)
+
     model = CanopyHeightNet()
+    state_dict = torch.load(weights_path, map_location=torch.device("cpu"))
+    model.load_state_dict(state_dict)
     model.eval()
     return model
 
